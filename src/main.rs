@@ -221,7 +221,7 @@ async fn gather_data() -> Result<(), btleplug::Error> {
     // get bluetooth adapter
     let adapters = manager.adapters().await?;
 
-    let adapter = adapters.into_iter().nth(0).unwrap();
+    let adapter = adapters.into_iter().next().unwrap();
 
     tracing::info!("Listening on {:?}", adapter);
 
@@ -243,37 +243,37 @@ async fn gather_data() -> Result<(), btleplug::Error> {
                     tracing::trace!("Parsed Ruuvi Data = {:?}", ruuvi);
                     let (last_seen, data) = ruuvi_data
                         .entry(ruuvi.mac)
-                        .or_insert_with(|| (std::time::SystemTime::now(), ruuvi.clone()));
+                        .or_insert_with(|| (std::time::SystemTime::now(), ruuvi));
                     if data.seq != ruuvi.seq {
                         *last_seen = std::time::SystemTime::now();
                         *data = ruuvi;
                         let mac = format_mac(&data.mac);
-                        ruuvi
-                            .get_temp()
-                            .map(|t| TEMP_GAUGE.with_label_values(&[&mac]).set(t));
-                        ruuvi
-                            .get_humidity()
-                            .map(|h| HUMIDITY_GAUGE.with_label_values(&[&mac]).set(h));
-                        ruuvi
-                            .get_pressure()
-                            .map(|p| PRESSURE_GAUGE.with_label_values(&[&mac]).set(p as f64));
-                        ruuvi
-                            .get_voltage()
-                            .map(|b| BATTERY_GAUGE.with_label_values(&[&mac]).set(b as f64));
-                        ruuvi
-                            .get_tx_power()
-                            .map(|p| TX_POWER_GAUGE.with_label_values(&[&mac]).set(p as f64));
-                        ruuvi
-                            .get_sequence()
-                            .map(|s| SEQUENCE_GAUGE.with_label_values(&[&mac]).set(s as f64));
+                        if let Some(t) = ruuvi.get_temp() {
+                            TEMP_GAUGE.with_label_values(&[&mac]).set(t);
+                        }
+                        if let Some(h) = ruuvi.get_humidity() {
+                            HUMIDITY_GAUGE.with_label_values(&[&mac]).set(h);
+                        }
+                        if let Some(p) = ruuvi.get_pressure() {
+                            PRESSURE_GAUGE.with_label_values(&[&mac]).set(p as f64);
+                        }
+                        if let Some(b) = ruuvi.get_voltage() {
+                            BATTERY_GAUGE.with_label_values(&[&mac]).set(b as f64);
+                        }
+                        if let Some(p) = ruuvi.get_tx_power() {
+                            TX_POWER_GAUGE.with_label_values(&[&mac]).set(p as f64);
+                        }
+                        if let Some(s) = ruuvi.get_sequence() {
+                            SEQUENCE_GAUGE.with_label_values(&[&mac]).set(s as f64);
+                        }
                         MOVEMENTS_GAUGE
                             .with_label_values(&[&mac])
                             .set(ruuvi.get_movements() as f64);
-                        ruuvi.get_acceleration().map(|(x, y, z)| {
+                        if let Some((x, y, z)) = ruuvi.get_acceleration() {
                             ACCEL_GAUGE.with_label_values(&[&mac, "x"]).set(x as f64);
                             ACCEL_GAUGE.with_label_values(&[&mac, "y"]).set(y as f64);
                             ACCEL_GAUGE.with_label_values(&[&mac, "z"]).set(z as f64);
-                        });
+                        };
                         LAST_SEEN_GAUGE.with_label_values(&[&mac]).set(
                             last_seen
                                 .duration_since(std::time::UNIX_EPOCH)
