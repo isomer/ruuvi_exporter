@@ -34,7 +34,7 @@ lazy_static! {
 struct Ruuvi {
     version: u8,
     /// Temperature in 0.005 degrees
-    temp: u16,
+    temp: i16,
     /// Humidity (16bit unsigned) in 0.0025% (0-163.83% range, though realistically 0-100%)
     humidity: u16,
     /// Pressure (16bit unsigned) in 1 Pa units, with offset of -50 000 Pa
@@ -65,7 +65,7 @@ impl Ruuvi {
     }
     /// Temperature (°C)
     pub fn get_temp(&self) -> Option<f64> {
-        if self.temp == 0x8000 {
+        if self.temp == i16::MIN {
             None
         } else {
             Some(self.temp as f64 * 0.005)
@@ -180,7 +180,7 @@ impl TryFrom<&[u8]> for Ruuvi {
     fn try_from(v: &[u8]) -> Result<Self, Self::Error> {
         let mut cur = std::io::Cursor::new(v);
         let version = cur.read_u8()?;
-        let temp = cur.read_u16be()?;
+        let temp = cur.read_i16be()?;
         let humidity = cur.read_u16be()?;
         let pressure = cur.read_u16be()?;
         let accel_x = cur.read_i16be()?;
