@@ -84,7 +84,7 @@ impl Ruuvi {
         if self.pressure == 65535 {
             None
         } else {
-            Some(self.pressure as i32 - 50000)
+            Some(self.pressure as i32 + 50000)
         }
     }
     fn preprocess_accel(accel: i16) -> Option<i16> {
